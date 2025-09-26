@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Chat } from '@google/genai';
 import { Message } from './components/Message';
-import { MicIcon, BookOpenIcon, CloseIcon, SendIcon } from './components/Icons';
+import { MicIcon, BookOpenIcon, CloseIcon, SendIcon, TeacherIcon } from './components/Icons';
 import { ChatMessage, SessionStatus } from './types';
 
 const SHARED_SYSTEM_INSTRUCTION = `Você é o "Teacher Richard", um professor de inglês para iniciantes (nível A0). Converse de forma natural, paciente e motivadora, sempre em português do Brasil. Aja como um tutor amigável, não um robô seguindo um script.
@@ -32,6 +32,33 @@ Inicie a conversa agora. Cumprimente o aluno calorosamente, apresente-se e comec
 const VOICE_SYSTEM_INSTRUCTION = `${SHARED_SYSTEM_INSTRUCTION}\n\nLembre-se, esta é uma aula de conversação por voz. Espere o aluno FALAR a resposta.`;
 const TEXT_SYSTEM_INSTRUCTION = `${SHARED_SYSTEM_INSTRUCTION}\n\nLembre-se, esta é uma aula por texto. Espere o aluno ESCREVER a resposta.`;
 
+// Base64 encoded MP3 audio for the demo
+const DEMO_AUDIO_1_B64 = "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAA//8xAAAAAAAAAAAAAAASgAEAAAAAANmaaxkAPwAABYAAAAIAAANIAAAAIEwAAAAAAAAAAABEaW5mbwAAAA8AAAAFAAEAgAAAAAAAAD/9TEkAAAAAABkANICAAABAIGQdDtAMjs5Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs-axc/:MQgAAAAAAAAADaAKQgAAAEDp15gAAAAAAAExNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV-axc7ECAAADiQAAAAGbGF2YzYwLjMxLjEwMg==AQAAAAAAAAAA/+MQwAQAAAAADaAKQkAAAEDwV5sAAAAAAAExNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV-axc....";
+const DEMO_AUDIO_2_B64 = "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAA//8xAAAAAAAAAAAAAAASgAEAAAAAAANiYtkAPwAABYAAAAIAAANIAAAAIEwAAAAAAAAAAABEaW5mbwAAAA8AAAAFAAEAgAAAAAAAAD/9TEkAAAAAABkANICAAABAIGQdDtAMjs5Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs//MQ0AAAAAAAAADaAKQgAAAEDr15kAAAAAAAExNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV-";
+
+const DEMO_MESSAGES: (Omit<ChatMessage, 'id'> & { delay: number; audio?: string })[] = [
+    {
+        role: 'teacher',
+        text: "Olá! Bem-vindo à nossa aula demonstrativa. Vamos praticar uma saudação simples. Por favor, diga: 'Hello'.",
+        delay: 500,
+        isDemo: true,
+        audio: DEMO_AUDIO_1_B64,
+    },
+    {
+        role: 'user',
+        text: 'Hello',
+        delay: 6000,
+        isDemo: true,
+    },
+    {
+        role: 'teacher',
+        text: 'Perfeito! Muito bem! Agora a aula de verdade vai começar.',
+        delay: 1500,
+        isDemo: true,
+        audio: DEMO_AUDIO_2_B64,
+    },
+];
+
 const App: React.FC = () => {
     const [status, setStatus] = useState<SessionStatus>('disconnected');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -40,6 +67,7 @@ const App: React.FC = () => {
     const [chatMode, setChatMode] = useState<'voice' | 'text' | null>(null);
     const [textInput, setTextInput] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [isDemonstrating, setIsDemonstrating] = useState(false);
 
     const sessionRef = useRef<any | null>(null);
     const chatRef = useRef<Chat | null>(null);
@@ -85,7 +113,6 @@ const App: React.FC = () => {
             }
         } catch (error) {
             console.error("Image generation failed:", error);
-            // Optionally update the message to show an error
         }
     }, []);
 
@@ -105,7 +132,6 @@ const App: React.FC = () => {
             generateImage(id, keyword);
         }
     }, [generateImage]);
-
 
     const stopAudioPlayback = useCallback(() => {
         if (outputAudioContextRef.current) {
@@ -127,13 +153,14 @@ const App: React.FC = () => {
         mediaStreamRef.current = null;
     }, [stopAudioPlayback]);
     
-    const handleStartVoiceSession = async () => {
+    const connectLiveSession = async () => {
         try {
             const ai = getAiInstance();
-            setChatMode('voice');
             setStatus('connecting');
             
-            outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            if (!outputAudioContextRef.current) {
+                outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+            }
             
             const sessionPromise = ai.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -238,6 +265,51 @@ const App: React.FC = () => {
         }
     };
 
+    const playDemoAudio = async (base64Audio: string) => {
+        if (!outputAudioContextRef.current) {
+            outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+        const audioContext = outputAudioContextRef.current;
+        const decodedBytes = decode(base64Audio);
+        try {
+            const audioBuffer = await audioContext.decodeAudioData(decodedBytes.buffer);
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+            source.start();
+        } catch (e) {
+            console.error("Error decoding audio data for demo", e);
+        }
+    };
+
+    const runVoiceDemo = async () => {
+        setIsDemonstrating(true);
+        setChatMode('voice');
+        setStatus('speaking');
+
+        let cumulativeDelay = 0;
+        for (const demoMsg of DEMO_MESSAGES) {
+            cumulativeDelay += demoMsg.delay;
+            setTimeout(() => {
+                setMessages(prev => [...prev, { ...demoMsg, id: `demo-${Date.now()}-${Math.random()}` }]);
+                if (demoMsg.audio) {
+                    playDemoAudio(demoMsg.audio);
+                }
+            }, cumulativeDelay);
+        }
+
+        setTimeout(() => {
+            setIsDemonstrating(false);
+            setMessages([]);
+            connectLiveSession();
+        }, cumulativeDelay + 3000);
+    };
+
+    const handleStartVoiceSession = () => {
+        runVoiceDemo();
+    };
+
+
     const handleSendTextMessage = async (initialMessage: string = '') => {
         const messageToSend = initialMessage || textInput;
         if (!messageToSend.trim() || isSending) return;
@@ -287,6 +359,7 @@ const App: React.FC = () => {
         setCurrentUserMessage('');
         currentUserMessageRef.current = '';
         currentTeacherMessageRef.current = '';
+        setIsDemonstrating(false);
     };
 
     const encode = (bytes: Uint8Array) => {
@@ -322,16 +395,16 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-slate-100 font-sans">
-            <header className="flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-sm">
+        <div className="flex flex-col h-screen bg-gradient-to-br from-indigo-100 via-white to-blue-100 font-sans">
+            <header className="flex items-center justify-between p-4 bg-white/70 backdrop-blur-xl border-b border-white/50 shadow-sm sticky top-0 z-20">
                 <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-indigo-600 rounded-full">
+                    <div className="p-2 bg-indigo-700 rounded-full shadow-md">
                         <BookOpenIcon className="w-6 h-6 text-white" />
                     </div>
                     <h1 className="text-xl font-bold text-slate-800">Teacher Richard</h1>
                 </div>
                 {chatMode && (
-                     <button onClick={handleEndSession} className="flex items-center px-4 py-2 text-sm font-medium text-white bg-rose-500 rounded-lg shadow-sm hover:bg-rose-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition-colors">
+                     <button onClick={handleEndSession} className="flex items-center px-4 py-2 text-sm font-medium text-white bg-rose-500 rounded-lg shadow-md hover:bg-rose-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition-all">
                         <CloseIcon className="w-4 h-4 mr-2"/>
                         Encerrar Aula
                     </button>
@@ -340,10 +413,10 @@ const App: React.FC = () => {
 
             {!chatMode || status === 'error' ? (
                 <main className="flex flex-col items-center justify-center flex-1 p-4 sm:p-8">
-                    <div className="w-full max-w-lg bg-white p-8 rounded-2xl shadow-lg text-center">
-                        <img src="https://storage.googleapis.com/maker-me/media/images/videoconference-in-the-office.width-1024.webp" alt="Online English Class" className="w-full h-auto rounded-xl shadow-md mb-8" />
-                        <h2 className="text-3xl font-extrabold text-slate-800 mb-2">Bem-vindo(a) à sua aula de inglês!</h2>
-                        <p className="text-slate-600 mb-8">Escolha como você quer começar a sua aula interativa.</p>
+                    <div className="w-full max-w-xl bg-white/70 backdrop-blur-2xl p-8 sm:p-10 rounded-3xl shadow-2xl text-center border border-white/50">
+                        <img src="https://storage.googleapis.com/maker-me/media/images/videoconference-in-the-office.width-1024.webp" alt="Online English Class" className="w-full h-auto rounded-xl shadow-xl mb-8" />
+                        <h2 className="text-4xl font-black text-slate-800 mb-3">Bem-vindo(a) à sua aula de inglês!</h2>
+                        <p className="text-slate-600 mb-8 text-lg">Escolha como você quer começar a sua aula interativa.</p>
                         {status === 'error' && messages.length > 0 && (
                             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
                                 <strong className="font-bold">Erro: </strong>
@@ -352,7 +425,7 @@ const App: React.FC = () => {
                         )}
                         <button
                             onClick={handleStartVoiceSession}
-                            className="w-full flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-indigo-600 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 ease-in-out transform hover:scale-105"
+                            className="w-full flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-indigo-600 rounded-lg shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl"
                         >
                             <MicIcon className="w-6 h-6 mr-3" />
                             Começar Aula por Voz
@@ -368,7 +441,7 @@ const App: React.FC = () => {
                                 value={textInput}
                                 onChange={(e) => setTextInput(e.target.value)}
                                 placeholder="Comece com uma mensagem..."
-                                className="flex-grow px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                                className="flex-grow px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors bg-white/80"
                             />
                             <button type="submit" className="px-4 py-3 font-semibold text-white bg-emerald-500 rounded-lg shadow-md hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors" aria-label="Começar por texto">
                                 <SendIcon className="w-6 h-6"/>
@@ -379,6 +452,11 @@ const App: React.FC = () => {
             ) : (
                 <>
                     <main className="flex-1 overflow-y-auto p-6 space-y-6">
+                        {isDemonstrating && (
+                            <div className="sticky top-0 z-10 bg-amber-100 border-b-2 border-amber-300 text-amber-800 p-3 text-center text-sm font-semibold rounded-lg shadow-sm mb-4">
+                                <p><strong>Modo Demonstração:</strong> Veja como a aula de voz funciona. A aula real começará em breve.</p>
+                            </div>
+                        )}
                        {messages.map(msg => <Message key={msg.id} message={msg} />)}
                        {chatMode === 'voice' && currentTeacherMessage && <Message message={{ id: 'current-teacher', role: 'teacher', text: currentTeacherMessage, isPartial: true }} />}
                        {chatMode === 'voice' && currentUserMessage && <Message message={{ id: 'current-user', role: 'user', text: currentUserMessage, isPartial: true }} />}
@@ -386,18 +464,27 @@ const App: React.FC = () => {
                        <div ref={(el) => el?.scrollIntoView({ behavior: 'smooth' })} />
                     </main>
 
-                    <footer className="p-4 bg-white/80 backdrop-blur-md border-t border-slate-200">
+                    <footer className="p-4 bg-white/70 backdrop-blur-xl border-t border-white/50 sticky bottom-0">
                        {chatMode === 'voice' ? (
-                            <div className="flex items-center justify-center space-x-3 text-slate-600">
-                               <MicIcon className={`w-6 h-6 ${status === 'listening' ? 'text-green-500' : (status === 'speaking' ? 'text-indigo-500' : 'text-slate-400')}`} />
-                               {status === 'listening' && (
-                                   <div className="relative flex items-center">
-                                       <span className="absolute h-4 w-4 bg-green-500 rounded-full animate-ping"></span>
-                                       <span className="font-medium">Ouvindo... Fale agora.</span>
-                                   </div>
-                               )}
-                                {status === 'speaking' && <span className="font-medium">Teacher Richard está falando...</span>}
-                                {status === 'connecting' && <span className="font-medium">Conectando...</span>}
+                            <div className="flex items-center justify-center space-x-3 text-slate-700">
+                                {isDemonstrating ? (
+                                    <>
+                                        <TeacherIcon className="w-6 h-6 text-indigo-500 animate-pulse" />
+                                        <span className="font-medium">Demonstração em andamento...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                       <MicIcon className={`w-6 h-6 ${status === 'listening' ? 'text-green-500' : (status === 'speaking' ? 'text-indigo-500' : 'text-slate-400')}`} />
+                                       {status === 'listening' && (
+                                           <div className="relative flex items-center">
+                                               <span className="absolute h-4 w-4 bg-green-500 rounded-full animate-ping"></span>
+                                               <span className="font-medium">Ouvindo... Fale agora.</span>
+                                           </div>
+                                       )}
+                                        {status === 'speaking' && <span className="font-medium">Teacher Richard está falando...</span>}
+                                        {status === 'connecting' && <span className="font-medium">Conectando...</span>}
+                                    </>
+                                )}
                             </div>
                        ) : (
                            <form onSubmit={(e) => { e.preventDefault(); handleSendTextMessage(); }} className="flex items-center gap-3">
@@ -406,11 +493,11 @@ const App: React.FC = () => {
                                     value={textInput}
                                     onChange={(e) => setTextInput(e.target.value)}
                                     placeholder={isSending ? 'Aguarde...' : 'Digite sua resposta...'}
-                                    className="flex-grow w-full px-5 py-3 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                                    className="flex-grow w-full px-5 py-3 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow bg-white/80"
                                     disabled={isSending}
                                     autoFocus
                                 />
-                                <button type="submit" disabled={isSending || !textInput.trim()} className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-indigo-600 rounded-full text-white disabled:bg-slate-300 transition-all duration-200 transform hover:scale-110">
+                                <button type="submit" disabled={isSending || !textInput.trim()} className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-indigo-600 rounded-full text-white disabled:bg-slate-300 transition-all duration-200 transform hover:scale-110 shadow-md hover:shadow-lg">
                                     <SendIcon className="w-6 h-6" />
                                 </button>
                            </form>

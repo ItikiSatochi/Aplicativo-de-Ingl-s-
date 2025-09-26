@@ -19,7 +19,7 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
                 return (
                     <div key={index} className="flex items-center gap-3">
                         <ChatBubbleIcon className="w-5 h-5 text-indigo-500 flex-shrink-0"/>
-                        <p><span className="font-semibold text-slate-700">Inglês:</span> {matchIngles[2]}</p>
+                        <p><span className="font-semibold text-slate-800">Inglês:</span> {matchIngles[2]}</p>
                     </div>
                 );
             }
@@ -28,7 +28,7 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
                 return (
                      <div key={index} className="flex items-center gap-3">
                         <SoundWaveIcon className="w-5 h-5 text-emerald-500 flex-shrink-0"/>
-                        <p><span className="font-semibold text-slate-700">Pronúncia:</span> <i className="text-slate-500">{matchPronuncia[2]}</i></p>
+                        <p><span className="font-semibold text-slate-800">Pronúncia:</span> <i className="text-slate-600">{matchPronuncia[2]}</i></p>
                     </div>
                 );
             }
@@ -37,11 +37,11 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
                  return (
                      <div key={index} className="flex items-center gap-3">
                         <TranslateIcon className="w-5 h-5 text-sky-500 flex-shrink-0"/>
-                        <p><span className="font-semibold text-slate-700">Tradução:</span> {matchTraducao[2]}</p>
+                        <p><span className="font-semibold text-slate-800">Tradução:</span> {matchTraducao[2]}</p>
                     </div>
                  );
             }
-            return <p key={index} className="text-slate-800">{line}</p>;
+            return <p key={index} className={isTeacher ? 'text-slate-800' : 'text-white'}>{line}</p>;
         });
 
         const elements: JSX.Element[] = [];
@@ -49,7 +49,7 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
 
         const commitVocabBlock = (key: string | number) => {
             if (vocabBlock.length > 0) {
-                elements.push(<div key={key} className="my-4 p-4 bg-indigo-50/70 rounded-lg border border-indigo-200 space-y-3">{vocabBlock}</div>);
+                elements.push(<div key={key} className="my-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200 space-y-3">{vocabBlock}</div>);
                 vocabBlock = [];
             }
         };
@@ -71,13 +71,13 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
     };
     
     return (
-        <div className={`flex items-start gap-3 ${!isTeacher && 'justify-end'}`}>
+        <div className={`flex items-start gap-4 ${!isTeacher && 'justify-end'}`}>
             {isTeacher && (
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-sm">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-700 flex items-center justify-center text-white shadow-md border-2 border-white/50">
                    <TeacherIcon className="w-6 h-6"/>
                 </div>
             )}
-            <div className={`max-w-2xl rounded-2xl ${isTeacher ? 'bg-white shadow-md border border-slate-100' : 'bg-indigo-600 text-white shadow-md'} ${message.isPartial ? 'opacity-70' : ''}`}>
+            <div className={`max-w-2xl rounded-2xl ${isTeacher ? 'bg-white shadow-lg' : 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-lg'} ${message.isPartial ? 'opacity-70' : ''}`}>
                 {message.imageKeyword && !message.imageUrl && (
                      <div className="flex items-center justify-center p-4 bg-slate-100 rounded-t-2xl">
                         <SpinnerIcon className="w-6 h-6 text-slate-400 animate-spin" />
@@ -87,12 +87,12 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
                 {message.imageUrl && (
                     <img src={message.imageUrl} alt={message.imageKeyword} className="w-full h-auto rounded-t-2xl object-cover" />
                 )}
-                <div className="px-5 py-4">
+                <div className="px-6 py-4">
                     {formatText(message.text)}
                 </div>
             </div>
              {!isTeacher && (
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 shadow-sm">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 shadow-md border-2 border-white/50">
                     <UserIcon className="w-6 h-6"/>
                 </div>
             )}
